@@ -1,0 +1,7 @@
+client:
+  notification:
+    url: "http://localhost:${wiremock.server.port}"
+  payment-gateway:
+    url: "http://localhost:${wiremock.server.port}"
+  product:
+    url: "http://localhost:${wiremock.server.port}"
