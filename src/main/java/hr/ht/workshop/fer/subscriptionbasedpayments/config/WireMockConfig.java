@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Profile;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 @Profile("!test")
+@Configuration
 public class WireMockConfig {
 
     @Value("${wiremock.server.port}")
