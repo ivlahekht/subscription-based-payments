@@ -22,7 +22,7 @@ public class PaymentGatewayService {
             paymentGatewayClient.deductMoney(subscriptionBasedPayment.getSubscriberId(), subscriptionBasedPayment.getPrice());
             log.info("{} euros successfully deducted for subscriber ID {}", subscriptionBasedPayment.getPrice(), subscriptionBasedPayment.getSubscriberId());
         } catch (Exception e) {
-            log.error("An error has occurred on payment gateway. Subscriber card has either expired, there are no enough funds, and payment method is missing");
+            log.error("An error has occurred on payment gateway. Subscriber card has either expired, there are no enough funds, and payment method is missing", e);
             throw new PaymentUnsuccessfulOnPaymentGatewayException("Could not deduct money on payment gateway.", e);
         }
     }
