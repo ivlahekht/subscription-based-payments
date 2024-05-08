@@ -1,0 +1,24 @@
+POST http://localhost:8084/v1/subscriptionBasedPayment
+Content-Type: application/json
+
+{
+	"subscriberId":10297734098,
+	"productId":456287,
+	"subscriptionDurationUnit":"SECONDS",
+	"subscriptionDurationAmount": 5,
+	"price": 15.00
+}
+###
+
+
+POST http://localhost:8084/v1/subscriptionBasedPayment
+Content-Type: application/json
+
+{
+  "subscriberId": 1,
+  "productId": 456287,
+  "subscriptionDurationUnit": "SECONDS",
+  "subscriptionDurationAmount": 5,
+  "price": 15.00
+}
+###
