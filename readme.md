@@ -79,9 +79,7 @@ What are the downsides of this approach?
 
 ### Camunda introduction
 
-```
-Add architecture
-```
+<img src="camunda-architecture.png" width="900"/>
 
 ### Prerequisites
 To finish this part you will need to:
