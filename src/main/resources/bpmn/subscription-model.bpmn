@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0nkkmt3" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.22.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.5.0">
+  <bpmn:process id="subscription_process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_0ssy3ac</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_0ssy3ac" sourceRef="StartEvent_1" targetRef="payment-scheduling-service" />
+    <bpmn:intermediateCatchEvent id="Event_0fz5oyc">
+      <bpmn:incoming>Flow_17r707e</bpmn:incoming>
+      <bpmn:outgoing>Flow_11kgjm9</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_15166al">
+        <bpmn:timeDate xsi:type="bpmn:tFormalExpression">=waitUntil</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:boundaryEvent id="Event_1nkwbht" attachedToRef="make-payment-service">
+      <bpmn:outgoing>Flow_0o48as9</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_0l5alsw" errorRef="Error_1viwnsl" />
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_17r707e" sourceRef="payment-scheduling-service" targetRef="Event_0fz5oyc" />
+    <bpmn:sequenceFlow id="Flow_11kgjm9" sourceRef="Event_0fz5oyc" targetRef="make-payment-service" />
+    <bpmn:sequenceFlow id="Flow_0o48as9" sourceRef="Event_1nkwbht" targetRef="notify-user-service" />
+    <bpmn:sequenceFlow id="Flow_1fo20dr" sourceRef="make-payment-service" targetRef="payment-scheduling-service" />
+    <bpmn:sequenceFlow id="Flow_0pu107h" sourceRef="notify-user-service" targetRef="activate-grace-period-service" />
+    <bpmn:sequenceFlow id="Flow_1bolh9f" sourceRef="activate-grace-period-service" targetRef="Event_18dfg7c" />
+    <bpmn:intermediateCatchEvent id="Event_18dfg7c">
+      <bpmn:incoming>Flow_1bolh9f</bpmn:incoming>
+      <bpmn:outgoing>Flow_02duxwb</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_0tlzxca">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT55S</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_02duxwb" sourceRef="Event_18dfg7c" targetRef="retry-payment-service" />
+    <bpmn:boundaryEvent id="Event_1oeae91" attachedToRef="retry-payment-service">
+      <bpmn:outgoing>Flow_1c540q3</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_1ieikpp" errorRef="Error_1eljca6" />
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_18s8kt5" sourceRef="retry-payment-service" targetRef="payment-scheduling-service" />
+    <bpmn:sequenceFlow id="Flow_1c540q3" sourceRef="Event_1oeae91" targetRef="suspend-service" />
+    <bpmn:endEvent id="Event_0vgorvk">
+      <bpmn:extensionElements />
+      <bpmn:incoming>Flow_1e1ruyp</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1e1ruyp" sourceRef="suspend-service" targetRef="Event_0vgorvk" />
+    <bpmn:serviceTask id="payment-scheduling-service" name="Schedule payment for the next month">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="payment-scheduling-service" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0ssy3ac</bpmn:incoming>
+      <bpmn:incoming>Flow_1fo20dr</bpmn:incoming>
+      <bpmn:incoming>Flow_18s8kt5</bpmn:incoming>
+      <bpmn:outgoing>Flow_17r707e</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="make-payment-service" name="Make the payment">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="make-payment-service" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_11kgjm9</bpmn:incoming>
+      <bpmn:outgoing>Flow_1fo20dr</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="notify-user-service" name="Notify user">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="notify-user-service" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0o48as9</bpmn:incoming>
+      <bpmn:outgoing>Flow_0pu107h</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="activate-grace-period-service" name="Activate grace period">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="activate-grace-period-service" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0pu107h</bpmn:incoming>
+      <bpmn:outgoing>Flow_1bolh9f</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="retry-payment-service" name="Make the payment">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="retry-payment-service" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_02duxwb</bpmn:incoming>
+      <bpmn:outgoing>Flow_18s8kt5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="suspend-service" name="Suspend the service">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="suspend-service" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1c540q3</bpmn:incoming>
+      <bpmn:outgoing>Flow_1e1ruyp</bpmn:outgoing>
+    </bpmn:serviceTask>
+  </bpmn:process>
+  <bpmn:error id="Error_1viwnsl" name="PAYMENT_FAILED" errorCode="PAYMENT_FAILED" />
+  <bpmn:error id="Error_1eljca6" name="RETRY_FAILED" errorCode="RETRY_FAILED" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="subscription_process">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="159" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0q3t5cl_di" bpmnElement="Event_0fz5oyc">
+        <dc:Bounds x="462" y="159" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0sn6ab8_di" bpmnElement="Event_18dfg7c">
+        <dc:Bounds x="872" y="332" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0vgorvk_di" bpmnElement="Event_0vgorvk">
+        <dc:Bounds x="1162" y="512" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1nbtbao_di" bpmnElement="payment-scheduling-service">
+        <dc:Bounds x="280" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0jgjvsn_di" bpmnElement="make-payment-service">
+        <dc:Bounds x="570" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1e8y5lu_di" bpmnElement="notify-user-service">
+        <dc:Bounds x="570" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1ytk3y9_di" bpmnElement="activate-grace-period-service">
+        <dc:Bounds x="710" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1wty2hx_di" bpmnElement="retry-payment-service">
+        <dc:Bounds x="960" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0u6e6a4_di" bpmnElement="suspend-service">
+        <dc:Bounds x="950" y="490" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1k0m85x_di" bpmnElement="Event_1oeae91">
+        <dc:Bounds x="982" y="372" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0isc0tb_di" bpmnElement="Event_1nkwbht">
+        <dc:Bounds x="602" y="199" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0ssy3ac_di" bpmnElement="Flow_0ssy3ac">
+        <di:waypoint x="215" y="177" />
+        <di:waypoint x="280" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17r707e_di" bpmnElement="Flow_17r707e">
+        <di:waypoint x="380" y="177" />
+        <di:waypoint x="462" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11kgjm9_di" bpmnElement="Flow_11kgjm9">
+        <di:waypoint x="498" y="177" />
+        <di:waypoint x="570" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0o48as9_di" bpmnElement="Flow_0o48as9">
+        <di:waypoint x="620" y="235" />
+        <di:waypoint x="620" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1fo20dr_di" bpmnElement="Flow_1fo20dr">
+        <di:waypoint x="620" y="137" />
+        <di:waypoint x="620" y="90" />
+        <di:waypoint x="330" y="90" />
+        <di:waypoint x="330" y="137" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0pu107h_di" bpmnElement="Flow_0pu107h">
+        <di:waypoint x="670" y="350" />
+        <di:waypoint x="710" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1bolh9f_di" bpmnElement="Flow_1bolh9f">
+        <di:waypoint x="810" y="350" />
+        <di:waypoint x="872" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_02duxwb_di" bpmnElement="Flow_02duxwb">
+        <di:waypoint x="908" y="350" />
+        <di:waypoint x="960" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18s8kt5_di" bpmnElement="Flow_18s8kt5">
+        <di:waypoint x="960" y="373" />
+        <di:waypoint x="930" y="440" />
+        <di:waypoint x="340" y="440" />
+        <di:waypoint x="340" y="217" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1c540q3_di" bpmnElement="Flow_1c540q3">
+        <di:waypoint x="1000" y="408" />
+        <di:waypoint x="1000" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1e1ruyp_di" bpmnElement="Flow_1e1ruyp">
+        <di:waypoint x="1050" y="530" />
+        <di:waypoint x="1162" y="530" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
