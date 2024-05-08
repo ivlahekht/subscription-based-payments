@@ -1,3 +1,22 @@
 spring:
   application:
     name: fer-camunda-workshop
+
+server:
+  port: 8084
+
+zeebe:
+  broker:
+    contactPoint: "http://localhost:26500"
+
+wiremock:
+  server:
+    port: 32769
+
+client:
+  notification:
+    url: "http://localhost:${wiremock.server.port}"
+  payment-gateway:
+    url: "http://localhost:${wiremock.server.port}"
+  product:
+    url: "http://localhost:${wiremock.server.port}"
