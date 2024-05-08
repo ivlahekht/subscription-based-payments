@@ -1,0 +1,48 @@
+version: '3.7'
+services:
+  zeebe:
+    container_name: zeebe_broker
+    image: camunda/zeebe:latest
+    environment:
+      - ZEEBE_LOG_LEVEL=info
+      - ZEEBE_BROKER_NETWORK_HOST=0.0.0.0
+      - ZEEBE_BROKER_GATEWAY_ENABLE=true
+      - ZEEBE_BROKER_GATEWAY_NETWORK_HOST=0.0.0.0
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_CLASSNAME=io.camunda.zeebe.exporter.ElasticsearchExporter
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_URL=http://elasticsearch:9200
+    ports:
+      - "26500:26500"
+      - "26501:26501"
+      - "26502:26502"
+    networks:
+      - camunda-platform
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - camunda-platform
+
+  operate:
+    container_name: operate
+    image: camunda/operate:latest
+    environment:
+      - camunda.operate.elasticsearch.url=http://elasticsearch:9200
+      - camunda.operate.zeebeElasticsearch.url=http://elasticsearch:9200
+      - camunda.operate.zeebe.gatewayAddress=zeebe:26500
+    ports:
+      - "8080:8080"
+    depends_on:
+      - zeebe
+      - elasticsearch
+    networks:
+      - camunda-platform
+
+
+networks:
+  camunda-platform:
