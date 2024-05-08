@@ -8,6 +8,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Profile(Profiles.CAMUNDA_BASED_IMPLEMENTATION)
-public class CamundaNotifyUserWorker implements CamundaWorker{
+@Slf4j
+public class CamundaNotifyUserWorker implements CamundaWorker {
 
     private final NotificationService notificationService;
 
@@ -30,8 +32,10 @@ public class CamundaNotifyUserWorker implements CamundaWorker{
 
     @PostConstruct
     public void subscribeToJobType() {
+        String jobName = "notify-user-service";
+        log.info("Creating {} job!", jobName);
         zeebeClient.newWorker()
-                .jobType("notify-user-service")
+                .jobType(jobName)
                 .handler(this::handleJob)
                 .open();
     }
@@ -40,8 +44,13 @@ public class CamundaNotifyUserWorker implements CamundaWorker{
     public void handleJob(JobClient client, ActivatedJob job) {
         Map<String, Object> subscriptionMap = job.getVariablesAsMap();
         SubscriptionBasedPayment subscription = objectMapper.convertValue(subscriptionMap, SubscriptionBasedPayment.class);
+        log.info("Notifying subscriber about the unsuccessful payment! {}", subscription);
+
         notificationService.notifySubscriberAboutUnsuccessfulPayment(subscription);
+
         client.newCompleteCommand(job.getKey())
                 .send();
+        log.info("New complete command sent by the client!");
+
     }
 }

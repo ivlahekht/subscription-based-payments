@@ -8,6 +8,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Profile(Profiles.CAMUNDA_BASED_IMPLEMENTATION)
-public class CamundaActivateGracePeriodWorker implements CamundaWorker{
+@Slf4j
+public class CamundaActivateGracePeriodWorker implements CamundaWorker {
 
     private final ProductService productService;
 
@@ -30,17 +32,24 @@ public class CamundaActivateGracePeriodWorker implements CamundaWorker{
 
     @PostConstruct
     public void subscribeToJobType() {
+        String jobName = "activate-grace-period-service";
+        log.info("Creating {} job!", jobName);
         zeebeClient.newWorker()
-                .jobType("activate-grace-period-service")
+                .jobType(jobName)
                 .handler(this::handleJob)
                 .open();
     }
+
     @Override
     public void handleJob(JobClient client, ActivatedJob job) {
+        log.info("Activating grace period!");
         Map<String, Object> subscriptionMap = job.getVariablesAsMap();
         SubscriptionBasedPayment subscription = objectMapper.convertValue(subscriptionMap, SubscriptionBasedPayment.class);
+
         productService.activateGracePeriod(subscription.getProductId());
+
         client.newCompleteCommand(job.getKey())
                 .send();
+        log.info("New complete command sent by the client!");
     }
 }

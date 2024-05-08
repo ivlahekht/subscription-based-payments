@@ -9,6 +9,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Profile(Profiles.CAMUNDA_BASED_IMPLEMENTATION)
-public class CamundaMakePaymentWorker implements CamundaWorker{
+@Slf4j
+public class CamundaMakePaymentWorker implements CamundaWorker {
 
     private final PaymentGatewayService paymentGatewayService;
 
@@ -31,8 +33,10 @@ public class CamundaMakePaymentWorker implements CamundaWorker{
 
     @PostConstruct
     public void subscribeToJobType() {
+        String jobName = "make-payment-service";
+        log.info("Creating {} job!", jobName);
         zeebeClient.newWorker()
-                .jobType("make-payment-service")
+                .jobType(jobName)
                 .handler(this::handleJob)
                 .open();
     }
@@ -42,10 +46,14 @@ public class CamundaMakePaymentWorker implements CamundaWorker{
         try {
             Map<String, Object> subscriptionMap = job.getVariablesAsMap();
             SubscriptionBasedPayment subscription = objectMapper.convertValue(subscriptionMap, SubscriptionBasedPayment.class);
+            log.info("Processing payment on gateway!");
             paymentGatewayService.processPaymentOnPaymentGateway(subscription);
+
             client.newCompleteCommand(job.getKey())
                     .send();
-        } catch(PaymentUnsuccessfulOnPaymentGatewayException e){
+            log.info("New complete command sent by the client!");
+        } catch (PaymentUnsuccessfulOnPaymentGatewayException e) {
+            log.error("Error occurred during processing payment on gateway", e);
             client.newThrowErrorCommand(job.getKey())
                     .errorCode("PAYMENT_FAILED")
                     .errorMessage(e.getMessage())

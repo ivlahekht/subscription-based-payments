@@ -8,6 +8,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Profile(Profiles.CAMUNDA_BASED_IMPLEMENTATION)
-public class CamundaPaymentSchedulingWorker implements CamundaWorker{
+@Slf4j
+public class CamundaPaymentSchedulingWorker implements CamundaWorker {
 
     private final PaymentSchedulingService paymentSchedulingService;
 
@@ -32,8 +34,10 @@ public class CamundaPaymentSchedulingWorker implements CamundaWorker{
 
     @PostConstruct
     public void subscribeToJobType() {
+        String jobName = "payment-scheduling-service";
+        log.info("Creating {} job!", jobName);
         zeebeClient.newWorker()
-                .jobType("payment-scheduling-service")
+                .jobType(jobName)
                 .handler(this::handleJob)
                 .open();
     }
@@ -42,6 +46,8 @@ public class CamundaPaymentSchedulingWorker implements CamundaWorker{
     public void handleJob(JobClient client, ActivatedJob job) {
         Map<String, Object> subscriptionMap = job.getVariablesAsMap();
         SubscriptionBasedPayment subscription = objectMapper.convertValue(subscriptionMap, SubscriptionBasedPayment.class);
+
+        log.info("Scheduling next payment due date!");
         paymentSchedulingService.scheduleNextPaymentDueDateTime(subscription);
 
         Map<String, Object> variables = job.getVariablesAsMap();
@@ -51,5 +57,7 @@ public class CamundaPaymentSchedulingWorker implements CamundaWorker{
                 .variables(variables)
                 .send()
                 .join();
+        log.info("New complete command sent by the client!");
+
     }
 }

@@ -9,6 +9,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Profile(Profiles.CAMUNDA_BASED_IMPLEMENTATION)
-public class CamundaRetryPaymentWorker implements CamundaWorker{
+@Slf4j
+public class CamundaRetryPaymentWorker implements CamundaWorker {
 
     private final PaymentGatewayService paymentGatewayService;
 
@@ -31,8 +33,10 @@ public class CamundaRetryPaymentWorker implements CamundaWorker{
 
     @PostConstruct
     public void subscribeToJobType() {
+        String jobName = "retry-payment-service";
+        log.info("Creating {} job!", jobName);
         zeebeClient.newWorker()
-                .jobType("retry-payment-service")
+                .jobType(jobName)
                 .handler(this::handleJob)
                 .open();
     }
@@ -40,12 +44,17 @@ public class CamundaRetryPaymentWorker implements CamundaWorker{
     @Override
     public void handleJob(JobClient client, ActivatedJob job) {
         try {
-            Map<String, Object> subscriptionMap =  job.getVariablesAsMap();
+            Map<String, Object> subscriptionMap = job.getVariablesAsMap();
             SubscriptionBasedPayment subscription = objectMapper.convertValue(subscriptionMap, SubscriptionBasedPayment.class);
+
+            log.info("Processing payment on payment gateway!");
             paymentGatewayService.processPaymentOnPaymentGateway(subscription);
+
+            log.info("New complete command sent by the client!");
             client.newCompleteCommand(job.getKey())
                     .send();
-        } catch(PaymentUnsuccessfulOnPaymentGatewayException e){
+        } catch (PaymentUnsuccessfulOnPaymentGatewayException e) {
+            log.error("Retry payment error occurred!", e);
             client.newThrowErrorCommand(job.getKey())
                     .errorCode("RETRY_FAILED")
                     .errorMessage(e.getMessage())
