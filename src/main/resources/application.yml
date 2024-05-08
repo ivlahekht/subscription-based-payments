@@ -5,6 +5,10 @@ spring:
 server:
   port: 8084
 
+zeebe:
+  broker:
+    contactPoint: "http://localhost:26500"
+
 wiremock:
   server:
     port: 32769
