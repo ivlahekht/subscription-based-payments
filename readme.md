@@ -1,10 +1,65 @@
 # Fer Camunda Workshop
 
-## 1. Pokrenuti i testirati naive rješenje
-- Pokrenuti aplikaciju sa Spring profilom 'naive-implementation'
-- Kreirati subscriptione pomoću POST request na localhost:8080/v1/subscriptionBasedPayment
+## Part 1 Showcase of a naive approach
 
-Neuspješna naplata:
+```
+checkout naive-approach branch
+```
+
+### Introduction
+
+In this part we will show you there are 2 ways to approach to this problem:
+- naive approach
+- camunda approach
+
+We will showcase the benefits of Camunda using subscription based model.
+
+This model is well known to people paying subscription based service like Netflix and Disney+.
+
+In the naive approach we will not use:
+- any of the technologies on the market
+- any of the modelling tools (we will use UML to explain what is happening)
+
+In the following picture you can find the subscription based model modelled in UML.
+
+<img src="naive_approach_uml.png" width="900"/>
+
+### Application walkthrough
+
+The application implements the subscription based model.
+Each call on the diagram is represented by the class in the project:
+- schedule payment for the next month -> PaymentSchedulingService
+- charge the user -> PaymentGatewayService
+- notify the user -> NotificationService
+- activate the grace period -> ProductService
+- suspend the service -> ProductService
+- orchestration of the process -> NaivePaymentProcessingService
+
+In the uml we have 3 external service calls:
+- Notification Service
+- Payment Service
+- Product Service
+
+We will use Wiremock that will act as server for the external calls we use.
+
+The process is triggered by sending a POST on http://localhost:8080/v1/subscriptionBasedPayment
+
+## Demo
+
+You will need to run the application with the profile *naive-implementation*
+
+We have prepared two requests to show 2 possible path in the process:
+- successful payment
+```jsx
+{
+    "subscriberId":1,
+        "productId":456287,
+        "subscriptionDurationUnit":"SECONDS",
+        "subscriptionDurationAmount": 15, /*2592000 = 30 dana*/
+        "price": 15.00
+}
+```
+- unsuccessful payment
 ```jsx
 {
 	"subscriberId":10297734098,
@@ -15,18 +70,81 @@ Neuspješna naplata:
 }
 ```
 
-Uspješna naplata:
-```jsx
-{
-	"subscriberId":1,
-	"productId":456287,
-	"subscriptionDurationUnit":"SECONDS",
-	"subscriptionDurationAmount": 15, /*2592000 = 30 dana*/
-	"price": 15.00
-}
+Try and execute the process by sending both request.
+
+What are the downsides of this approach?
+
+
+## Part 2 Introduction to Camunda architecture and modelling
+
+### Camunda introduction
+
+```
+Add architecture
 ```
 
-Primijetiti  da se prilikom izvršavanje poslovnog procesa oslanjamo na logove. Nakon što kreiramo više subscriptiona teško je pratiti statuse pojedinih subscriptiona. Također, ako ne poznajemo poslovni proces ne znamo koji je sljedeći korak u izvršavanju.
+### Prerequisites
+To finish this part you will need to:
+- download and install Camunda Modeler https://camunda.com/download/modeler/
+- run the *compose.yaml* located in the *Docker* folder of the project
+- run the application with *camunda-based-implementation* profile
+
+### Code Changes
+
+The following was added to the project:
+- maven dependency *zeebe-client-java*
+- ZeebeConfig class
+- application.yml is updated with a property to enable communication with the Zeebe
+
+### Demo
+
+On the following picture simple process is given we will work on
+
+<img src="introduction-camunda.png" width="900"/>
+
+
+## Part 3 Introduction to Camunda Service Task
+
+```
+Goal is to show how to define the behaviour of the process using a code
+```
+
+The following was added to the project:
+- CamundaSimpleServiceTask
+- CamundaSimpleServiceTask2
+
+
+### Demo
+
+On the following picture simple process is given we will work on
+
+<img src="introduction-camunda-service-task.png" width="900"/>
+
+
+## Part 4 Introduction to Camunda Timer Task
+
+```
+Goal is to show how to control the process with the variable defined outside of the code
+```
+
+### Demo
+
+On the following picture simple process is given we will work on
+
+<img src="introduction-camunda-service-task.png" width="900"/>
+
+## Part 5 Introduction to Camunda Timer Task
+
+```
+Goal is to show how to control the process with Timer task defined as Date
+```
+
+### Demo
+
+On the following picture simple process is given we will work on
+
+<img src="introduction-camunda-service-task.png" width="900"/>
+
 
 
 ### Testovi
@@ -98,10 +216,10 @@ Bitno je da simulacija komunikacije prema klijentima uspješno prođe kako bi mo
 > Zeebe broker je ključna komponenta u Camunda verziji 8. On upravlja tokom poslovnog procesa i odgovoran je za praćenje stanja pojedine instance procesa.
 > Također, omogućava horizontalno skaliranje što znači da se može lako prilagoditi povećanju opterećenja ili broju aktivnih procesa.
 
-Za pokretanje brokera potrebno je također pokrenuti i container za Elasticsearch. Elasticseach u ovom slučaju služi za pohranu podataka o toku procesa i instancama. 
+Za pokretanje brokera potrebno je također pokrenuti i container za Elasticsearch. Elasticseach u ovom slučaju služi za pohranu podataka o toku procesa i instancama.
 Uz Zeebe broker koristit ćemo i Camunda Operate.
 
-> Camunda Operate je alat koji pruža sučelje za pregled, analizu i upravljanje poslovnih procesa u stvarnom vremenu. 
+> Camunda Operate je alat koji pruža sučelje za pregled, analizu i upravljanje poslovnih procesa u stvarnom vremenu.
 > S pomoću ovog alata pratit ćemo izvršavanje pojedinih procesa, identificirati probleme u modelu/kodu i sl.
 
 <details>
@@ -184,7 +302,7 @@ Koje korake imamo u poslovnom procesu pretplate?
 Koje "gradivne elemente" možemo koristiti za modeliranje?
 - **start event**  - koji označava početak poslovnog procesa
 - **(service) taskove** - koji predstavljaju pojedine aktivnosti koje se izvršavaju prilikom poziva koda (JobWorkera) ili prilikom izvođenja određene logike
-   - neki taskovi kao ishod mogu imati i grešku za što koristimo "**error boundary event**"
+    - neki taskovi kao ishod mogu imati i grešku za što koristimo "**error boundary event**"
 - **timer evente** - predstavljaju aktivnosti koje se pokreću na određeni datum i vrijeme ili nakon određenog intervala
 - **end event** - koji označava kraj poslovnog procesa
 
@@ -203,7 +321,7 @@ Završni model bi trebao biti sličan modelu niže:
 
 ## Kreiranje ZeebeClienta
 > Zeebe Client je library koji nam omogućava komunikaciju sa Zeebe brokerom. Pomoću Zeebe clienta ćemo startati instance poslovnog procesa, delegirati zadatke JobWorkerima itd.
- 
+
 U našem slučaju konfigurirat ćemo ZeebeClient kao Bean u klasi `ZeebeConfig`. U ovoj konfiguracijskoj klasi najbitnije je navesti "grpcAddress" odnosno adresu na kojoj se nalazi Zeebe broker.
 
 ```java
@@ -293,14 +411,14 @@ Dodavanje varijable na instancu poslovnog procesa:
 ```java
     /**ZeebeClient prihvaća mapu.**/
     Map<String, Object> variables = job.getVariablesAsMap();
-    /**Potrebno je java LocalDateTime formatirati u ISO 8601 format s kojim radi Camunda, ali i pravilno postaviti offset za vremensku zonu**/
-    variables.put("waitUntil", subscription.getNextPaymentDueDateTime().atOffset(ZoneOffset.of("+02:00")).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        /**Potrebno je java LocalDateTime formatirati u ISO 8601 format s kojim radi Camunda, ali i pravilno postaviti offset za vremensku zonu**/
+        variables.put("waitUntil", subscription.getNextPaymentDueDateTime().atOffset(ZoneOffset.of("+02:00")).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 
-    /**Dodavanje varijable*//
-    client.newCompleteCommand(job.getKey())
-            .variables(variables)
-            .send()
-            .join();
+        /**Dodavanje varijable*//
+        client.newCompleteCommand(job.getKey())
+        .variables(variables)
+        .send()
+        .join();
 ```
 
 Povezivanje varijable i eventa unutar Camunda modelera:
